@@ -5,7 +5,7 @@ import { SettingsClient } from "./settings-client";
 import { GlassHeader } from "@/components/layout/glass-header";
 
 export default async function SettingsPage() {
-  const settings = await db.getSettings();
+  const settings = await db.getSettings().catch(() => defaultAppSettings());
   const hasDeepSeek = isDeepSeekConfigured();
   const hasDatabase = useDatabase();
 
