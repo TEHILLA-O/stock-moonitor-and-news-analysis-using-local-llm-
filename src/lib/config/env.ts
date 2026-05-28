@@ -6,7 +6,8 @@ export function hasDatabaseUrl(): boolean {
 }
 
 export function storageMode(): "supabase" | "local" {
-  return hasDatabaseUrl() ? "supabase" : "local";
+  if (hasDatabaseUrl() || hasSupabaseClientEnv()) return "supabase";
+  return "local";
 }
 
 export function hasFinnhubKey(): boolean {
@@ -19,10 +20,25 @@ export function hasNgxPulseKey(): boolean {
   return Boolean(k && !k.startsWith("your_"));
 }
 
+export function hasSupabaseClientEnv(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
+  );
+}
+
 export function recommendedFinancialProvider(): string {
   return process.env.FINANCIAL_PROVIDER ?? "auto";
 }
 
 export function recommendedNewsProvider(): string {
-  return process.env.NEWS_PROVIDER ?? "free";
+  if (process.env.NEWS_PROVIDER) return process.env.NEWS_PROVIDER;
+  if (process.env.NEWSDATA_API_KEY?.trim()) return "newsdata";
+  if (process.env.NEWS_API_KEY?.trim()) return "newsapi";
+  return "free";
+}
+
+export function hasNewsDataKey(): boolean {
+  const k = process.env.NEWSDATA_API_KEY?.trim();
+  return Boolean(k && !k.startsWith("your_"));
 }

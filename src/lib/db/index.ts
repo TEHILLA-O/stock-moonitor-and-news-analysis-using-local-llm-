@@ -9,33 +9,45 @@ import type {
   TrendSnapshot,
 } from "@/lib/types";
 import { generateId } from "@/lib/utils";
+import { hasSupabaseClientEnv } from "@/lib/config/env";
 import { memoryStore } from "./memory-store";
 import { postgresStore } from "./postgres-store";
+import { supabaseRestStore } from "./supabase-rest-store";
 
 export function useDatabase(): boolean {
   const url = process.env.DATABASE_URL ?? "";
-  return url.startsWith("postgres");
+  return url.startsWith("postgres") || hasSupabaseClientEnv();
 }
 
 function usePostgres(): boolean {
-  return useDatabase();
+  const url = process.env.DATABASE_URL?.trim() ?? "";
+  return url.startsWith("postgres");
 }
 
-/** Repository — Supabase/Postgres when DATABASE_URL is set, else local `.data/store.json` */
+function useSupabaseRest(): boolean {
+  return !usePostgres() && hasSupabaseClientEnv();
+}
+
+type Store = typeof postgresStore;
+
+function getStore(): Store {
+  if (usePostgres()) return postgresStore;
+  if (useSupabaseRest()) return supabaseRestStore;
+  return memoryStore as unknown as Store;
+}
+
+/** Repository — Postgres, Supabase REST, or local `.data/store.json` */
 export const db = {
   async getCompanies(): Promise<Company[]> {
-    if (usePostgres()) return postgresStore.getCompanies();
-    return memoryStore.getCompanies();
+    return getStore().getCompanies();
   },
 
   async getCompanyByTicker(ticker: string): Promise<Company | null> {
-    if (usePostgres()) return postgresStore.getCompanyByTicker(ticker);
-    return memoryStore.getCompanyByTicker(ticker) ?? null;
+    return getStore().getCompanyByTicker(ticker);
   },
 
   async getCompanyById(id: string): Promise<Company | null> {
-    if (usePostgres()) return postgresStore.getCompanyById(id);
-    return memoryStore.getCompanyById(id) ?? null;
+    return getStore().getCompanyById(id);
   },
 
   async createCompany(
@@ -55,8 +67,7 @@ export const db = {
       updatedAt: now,
     };
 
-    if (usePostgres()) return postgresStore.upsertCompany(company);
-    return memoryStore.upsertCompany(company);
+    return getStore().upsertCompany(company);
   },
 
   async updateCompany(id: string, data: Partial<Company>): Promise<Company | null> {
@@ -68,61 +79,52 @@ export const db = {
       id: existing.id,
       updatedAt: new Date().toISOString(),
     };
-    if (usePostgres()) return postgresStore.upsertCompany(updated);
-    return memoryStore.upsertCompany(updated);
+    return getStore().upsertCompany(updated);
   },
 
   async deleteCompany(id: string): Promise<boolean> {
-    if (usePostgres()) return postgresStore.deleteCompany(id);
-    return memoryStore.deleteCompany(id);
+    return getStore().deleteCompany(id);
   },
 
   async getStockSnapshots(companyId: string): Promise<StockSnapshot[]> {
-    if (usePostgres()) return postgresStore.getStockSnapshots(companyId);
-    return memoryStore
-      .getStockSnapshots(companyId)
-      .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+    return getStore().getStockSnapshots(companyId);
   },
 
   async addStockSnapshot(data: Omit<StockSnapshot, "id">): Promise<StockSnapshot> {
     const snapshot: StockSnapshot = { ...data, id: generateId() };
-    if (usePostgres()) return postgresStore.addStockSnapshot(snapshot);
-    return memoryStore.addStockSnapshot(snapshot);
+    return getStore().addStockSnapshot(snapshot);
   },
 
   async getFinancialSnapshots(companyId: string): Promise<FinancialSnapshot[]> {
-    if (usePostgres()) return postgresStore.getFinancialSnapshots(companyId);
-    return memoryStore.getFinancialSnapshots(companyId);
+    return getStore().getFinancialSnapshots(companyId);
   },
 
   async addFinancialSnapshot(
     data: Omit<FinancialSnapshot, "id">
   ): Promise<FinancialSnapshot> {
     const snapshot: FinancialSnapshot = { ...data, id: generateId() };
-    if (usePostgres()) return postgresStore.addFinancialSnapshot(snapshot);
-    return memoryStore.addFinancialSnapshot(snapshot);
+    return getStore().addFinancialSnapshot(snapshot);
   },
 
   async getNewsArticles(companyId: string): Promise<NewsArticle[]> {
-    if (usePostgres()) return postgresStore.getNewsArticles(companyId);
-    return memoryStore.getNewsArticles(companyId);
+    return getStore().getNewsArticles(companyId);
   },
 
   async setNewsArticles(
     companyId: string,
     articles: NewsArticle[]
   ): Promise<NewsArticle[]> {
-    if (usePostgres()) return postgresStore.setNewsArticles(companyId, articles);
-    return memoryStore.setNewsArticles(companyId, articles);
+    return getStore().setNewsArticles(companyId, articles);
   },
 
   async getAIAnalyses(companyId: string): Promise<AIAnalysis[]> {
-    if (usePostgres()) return postgresStore.getAIAnalyses(companyId);
-    return memoryStore.getAIAnalyses(companyId);
+    return getStore().getAIAnalyses(companyId);
   },
 
   async addAIAnalysis(data: Omit<AIAnalysis, "id" | "createdAt">): Promise<AIAnalysis> {
-    if (usePostgres()) return postgresStore.addAIAnalysis(data);
+    if (useSupabaseRest() || usePostgres()) {
+      return getStore().addAIAnalysis(data);
+    }
     return memoryStore.addAIAnalysis({
       ...data,
       id: generateId(),
@@ -131,13 +133,11 @@ export const db = {
   },
 
   async getResearchNotes(companyId: string): Promise<ResearchNote[]> {
-    if (usePostgres()) return postgresStore.getResearchNotes(companyId);
-    return memoryStore.getResearchNotes(companyId);
+    return getStore().getResearchNotes(companyId);
   },
 
   async upsertResearchNote(note: ResearchNote): Promise<ResearchNote> {
-    if (usePostgres()) return postgresStore.upsertResearchNote(note);
-    return memoryStore.upsertResearchNote(note);
+    return getStore().upsertResearchNote(note);
   },
 
   async createResearchNote(
@@ -150,31 +150,24 @@ export const db = {
       createdAt: now,
       updatedAt: now,
     };
-    if (usePostgres()) return postgresStore.upsertResearchNote(note);
-    return memoryStore.upsertResearchNote(note);
+    return getStore().upsertResearchNote(note);
   },
 
   async deleteResearchNote(id: string): Promise<boolean> {
-    if (usePostgres()) return postgresStore.deleteResearchNote(id);
-    return memoryStore.deleteResearchNote(id);
+    return getStore().deleteResearchNote(id);
   },
 
   async getTrendSnapshots(companyId: string): Promise<TrendSnapshot[]> {
-    if (usePostgres()) return postgresStore.getTrendSnapshots(companyId);
-    return memoryStore
-      .getTrendSnapshots(companyId)
-      .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+    return getStore().getTrendSnapshots(companyId);
   },
 
   async addTrendSnapshot(data: Omit<TrendSnapshot, "id">): Promise<TrendSnapshot> {
     const snapshot: TrendSnapshot = { ...data, id: generateId() };
-    if (usePostgres()) return postgresStore.addTrendSnapshot(snapshot);
-    return memoryStore.addTrendSnapshot(snapshot);
+    return getStore().addTrendSnapshot(snapshot);
   },
 
   async getSettings(): Promise<AppSettings> {
-    if (usePostgres()) return postgresStore.getSettings();
-    return memoryStore.getSettings();
+    return getStore().getSettings();
   },
 
   async updateSettings(data: Partial<AppSettings>): Promise<AppSettings> {
@@ -184,7 +177,6 @@ export const db = {
       ...data,
       updatedAt: new Date().toISOString(),
     };
-    if (usePostgres()) return postgresStore.updateSettings(updated);
-    return memoryStore.updateSettings(updated);
+    return getStore().updateSettings(updated);
   },
 };

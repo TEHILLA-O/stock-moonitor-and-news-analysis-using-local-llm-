@@ -56,11 +56,13 @@ export type NewsFetchConfig = {
 export async function ensureFreshCompanyNews(
   company: { id: string; ticker: string; name: string },
   config: NewsFetchConfig,
-  options?: { force?: boolean }
+  options?: { force?: boolean; skipCache?: boolean }
 ): Promise<NewsArticle[]> {
-  let articles = await db.getNewsArticles(company.id);
+  const skipPersist = options?.skipCache || company.id.startsWith("browse-");
 
-  if (!options?.force && !isNewsStale(articles)) {
+  let articles = skipPersist ? [] : await db.getNewsArticles(company.id);
+
+  if (!options?.force && !skipPersist && !isNewsStale(articles)) {
     return articles;
   }
 
@@ -80,7 +82,9 @@ export async function ensureFreshCompanyNews(
   );
 
   articles = mergeNewsArticles(articles, fresh);
-  await db.setNewsArticles(company.id, articles);
+  if (!skipPersist) {
+    await db.setNewsArticles(company.id, articles);
+  }
   return articles;
 }
 

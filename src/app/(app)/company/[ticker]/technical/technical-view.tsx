@@ -24,10 +24,12 @@ export function TechnicalView({
   ohlcv,
   snapshot: fallbackSnapshot,
   dataSources,
+  currency = "USD",
 }: {
   ohlcv: OhlcvBar[];
   snapshot: TechnicalSnapshot | null;
   dataSources?: string[];
+  currency?: string;
 }) {
   const [interval, setInterval] = useState<ChartInterval>("daily");
 
@@ -95,7 +97,7 @@ export function TechnicalView({
           </Badge>
         </CardHeader>
         <CardContent>
-          <CandlestickChart data={rows} />
+          <CandlestickChart data={rows} currency={currency} />
         </CardContent>
       </Card>
 
@@ -119,10 +121,10 @@ export function TechnicalView({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric title="Last Price" value={formatCurrency(snapshot.lastPrice)} />
-        <Metric title="SMA 20" value={snapshot.sma20 ? formatCurrency(snapshot.sma20) : "—"} />
-        <Metric title="SMA 50" value={snapshot.sma50 ? formatCurrency(snapshot.sma50) : "—"} />
-        <Metric title="SMA 200" value={snapshot.sma200 ? formatCurrency(snapshot.sma200) : "—"} />
+        <Metric title="Last Price" value={formatCurrency(snapshot.lastPrice, { currency })} />
+        <Metric title="SMA 20" value={snapshot.sma20 ? formatCurrency(snapshot.sma20, { currency }) : "—"} />
+        <Metric title="SMA 50" value={snapshot.sma50 ? formatCurrency(snapshot.sma50, { currency }) : "—"} />
+        <Metric title="SMA 200" value={snapshot.sma200 ? formatCurrency(snapshot.sma200, { currency }) : "—"} />
         <Metric title="RSI (14)" value={snapshot.rsi14 ? snapshot.rsi14.toFixed(2) : "—"} />
         <Metric title="MACD" value={snapshot.macd ? snapshot.macd.toFixed(3) : "—"} />
         <Metric title="Signal" value={snapshot.macdSignal ? snapshot.macdSignal.toFixed(3) : "—"} />
@@ -138,8 +140,8 @@ export function TechnicalView({
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <Item label="52W High" value={formatCurrency(snapshot.fiftyTwoWeekHigh)} />
-            <Item label="52W Low" value={formatCurrency(snapshot.fiftyTwoWeekLow)} />
+            <Item label="52W High" value={formatCurrency(snapshot.fiftyTwoWeekHigh, { currency })} />
+            <Item label="52W Low" value={formatCurrency(snapshot.fiftyTwoWeekLow, { currency })} />
             <Item
               label="Distance from 52W High"
               value={pct(snapshot.lastPrice, snapshot.fiftyTwoWeekHigh)}

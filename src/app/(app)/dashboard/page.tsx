@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
+import { defaultAppSettings } from "@/lib/db/default-settings";
 import {
   fetchCompanyFinancials,
   resolveFinancialProvider,
@@ -14,12 +15,14 @@ import { Button } from "@/components/ui/button";
 import { SystemStatusBanner } from "@/components/layout/system-status-banner";
 
 export default async function DashboardPage() {
-  const companies = await db.getCompanies();
-  const settings = await db.getSettings();
+  const companies = await db.getCompanies().catch(() => [] as Awaited<
+    ReturnType<typeof db.getCompanies>
+  >);
+  const settings = await db.getSettings().catch(() => defaultAppSettings());
 
   const cards = await Promise.all(
     companies.map(async (company) => {
-      const analyses = await db.getAIAnalyses(company.id);
+      const analyses = await db.getAIAnalyses(company.id).catch(() => []);
       try {
         const financials = await fetchCompanyFinancials(
           {

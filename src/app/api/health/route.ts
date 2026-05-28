@@ -6,8 +6,10 @@ import {
   hasDatabaseUrl,
   hasFinnhubKey,
   hasNgxPulseKey,
+  hasSupabaseClientEnv,
   storageMode,
 } from "@/lib/config/env";
+import { defaultAppSettings } from "@/lib/db/default-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +31,19 @@ export async function GET() {
       : "Add DEEPSEEK_API_KEY to .env.local",
   };
 
+  const { hasNewsDataKey } = await import("@/lib/config/env");
+  checks.newsData = {
+    ok: hasNewsDataKey(),
+    detail: hasNewsDataKey()
+      ? "NewsData.io key present"
+      : "No NEWSDATA_API_KEY",
+  };
+
   checks.newsApi = {
     ok: Boolean(process.env.NEWS_API_KEY),
     detail: process.env.NEWS_API_KEY
-      ? "NewsAPI key present (optional; free news also available)"
-      : "No NEWS_API_KEY — using free Hear + RSS",
+      ? "NewsAPI.org key present"
+      : "No NEWS_API_KEY",
   };
 
   checks.financialApi = {
@@ -75,7 +85,7 @@ export async function GET() {
       dbOk = true;
       checks.database = {
         ok: true,
-        detail: `Connected — ${companies.length} companies in watchlist`,
+        detail: `Postgres connected — ${companies.length} companies in watchlist`,
       };
     } catch (e) {
       checks.database = {
@@ -83,10 +93,24 @@ export async function GET() {
         detail: e instanceof Error ? e.message : "Database connection failed",
       };
     }
+  } else if (hasSupabaseClientEnv()) {
+    try {
+      const companies = await db.getCompanies();
+      dbOk = true;
+      checks.database = {
+        ok: true,
+        detail: `Supabase REST connected — ${companies.length} companies in watchlist`,
+      };
+    } catch (e) {
+      checks.database = {
+        ok: false,
+        detail: e instanceof Error ? e.message : "Supabase REST failed",
+      };
+    }
   } else {
     checks.database = {
       ok: false,
-      detail: "DATABASE_URL not set — using local JSON only",
+      detail: "No DATABASE_URL or Supabase keys — using local JSON only",
     };
   }
 
@@ -108,7 +132,8 @@ export async function GET() {
     };
   }
 
-  const settings = await db.getSettings();
+  const settings = await db.getSettings().catch(() => defaultAppSettings());
+
   const recommendations: string[] = [];
 
   if (!hasDatabaseUrl()) {

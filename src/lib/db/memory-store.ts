@@ -24,6 +24,8 @@ interface StoreData {
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_FILE = path.join(DATA_DIR, "store.json");
+/** Vercel serverless filesystem is read-only — keep data in memory only. */
+const useDisk = !process.env.VERCEL;
 
 function defaultStore(): StoreData {
   const now = new Date().toISOString();
@@ -70,6 +72,11 @@ let cacheMtime = 0;
 
 /** Reload from disk when the file changes (fixes dev multi-worker stale lists). */
 function getStore(): StoreData {
+  if (!useDisk) {
+    if (!cache) cache = defaultStore();
+    return cache;
+  }
+
   if (!existsSync(STORE_FILE)) {
     cache = defaultStore();
     mkdirSync(DATA_DIR, { recursive: true });
@@ -87,11 +94,14 @@ function getStore(): StoreData {
 }
 
 function persist(): void {
-  if (cache) {
+  if (!useDisk || !cache) return;
+  try {
     saveStore(cache);
     if (existsSync(STORE_FILE)) {
       cacheMtime = statSync(STORE_FILE).mtimeMs;
     }
+  } catch {
+    /* read-only filesystem on serverless */
   }
 }
 
@@ -233,6 +243,12 @@ export const memoryStore = {
       store.settings.newsProvider = process.env.NEWS_PROVIDER ?? "free";
     }
     if (
+      store.settings.newsProvider === "free" &&
+      process.env.NEWSDATA_API_KEY &&
+      process.env.NEWS_PROVIDER === "newsdata"
+    ) {
+      store.settings.newsProvider = "newsdata";
+    } else if (
       store.settings.newsProvider === "free" &&
       process.env.NEWS_API_KEY &&
       process.env.NEWS_PROVIDER === "newsapi"

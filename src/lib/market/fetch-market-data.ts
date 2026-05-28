@@ -177,6 +177,9 @@ export async function fetchMarketDataBundle(
     ...financials,
     dataSources: [...new Set([...(financials.dataSources ?? []), ...sources])],
     isDelayed: true,
+    currency: isNgxListing(exchange, country)
+      ? "NGN"
+      : financials.currency ?? "USD",
   };
 
   return { financials, ohlcv, filings, sources };

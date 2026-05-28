@@ -33,15 +33,22 @@ You should see tables: `companies`, `news_articles`, `ai_analyses`, `settings`, 
 **Local** — `.env.local`:
 
 ```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
+
 DATABASE_URL=postgresql://postgres.[ref]:YOUR_PASSWORD@....pooler.supabase.com:6543/postgres
 ```
 
+Get **URL** and **publishable key** from Supabase → **Project Settings** → **API**.
+
 **Vercel** — Project → **Settings** → **Environment Variables**:
 
-- Name: `DATABASE_URL`
-- Value: same connection string (use the **pooler** URL on port **6543**)
-
-Also add your other keys (`DEEPSEEK_API_KEY`, etc.) on Vercel.
+| Name | Notes |
+|------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable / anon key (safe for client) |
+| `DATABASE_URL` | Pooler connection string (port **6543**) |
+| `DEEPSEEK_API_KEY`, `NGX_PULSE_API_KEY`, etc. | Your other app keys |
 
 ## 5. Restart and verify
 

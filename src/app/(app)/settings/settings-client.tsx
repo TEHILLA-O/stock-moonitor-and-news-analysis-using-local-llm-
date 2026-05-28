@@ -13,6 +13,7 @@ interface SettingsClientProps {
   hasDeepSeek: boolean;
   hasDatabase: boolean;
   hasNewsApi: boolean;
+  hasNewsData: boolean;
   hasFinancialApi: boolean;
   hasNgxPulse: boolean;
 }
@@ -22,6 +23,7 @@ export function SettingsClient({
   hasDeepSeek,
   hasDatabase,
   hasNewsApi,
+  hasNewsData,
   hasFinancialApi,
   hasNgxPulse,
 }: SettingsClientProps) {
@@ -90,7 +92,8 @@ export function SettingsClient({
             label="Yahoo Finance"
             ok={health?.checks.yahoo?.ok ?? false}
           />
-          <StatusRow label="News API (optional)" ok={hasNewsApi} />
+          <StatusRow label="NewsData.io" ok={hasNewsData} />
+          <StatusRow label="NewsAPI.org (optional)" ok={hasNewsApi} />
           <StatusRow label="Alpha Vantage" ok={hasFinancialApi} />
           <StatusRow
             label="NGX Pulse (Nigeria)"
@@ -149,7 +152,8 @@ export function SettingsClient({
                 }
               >
                 <option value="free">Free (Hear + RSS)</option>
-                <option value="newsapi">NewsAPI (optional key)</option>
+                <option value="newsdata">NewsData.io</option>
+                <option value="newsapi">NewsAPI.org</option>
                 <option value="finnhub">Finnhub</option>
                 <option value="fmp">Financial Modeling Prep</option>
               </Select>

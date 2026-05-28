@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FinancialMetrics } from "@/lib/types";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, resolveListingCurrency } from "@/lib/utils";
 
 interface MetricsGridProps {
   financials: FinancialMetrics;
 }
 
 export function MetricsGrid({ financials }: MetricsGridProps) {
-  const currency = financials.currency;
+  const currency = resolveListingCurrency(undefined, undefined, financials.currency);
   const metrics = [
     {
       label: "Current Price",
@@ -18,7 +18,7 @@ export function MetricsGrid({ financials }: MetricsGridProps) {
       value: formatCurrency(financials.marketCap, { compact: true, currency }),
     },
     { label: "P/E Ratio", value: financials.peRatio?.toFixed(1) ?? "—" },
-    { label: "EPS", value: financials.eps ? `$${financials.eps.toFixed(2)}` : "—" },
+    { label: "EPS", value: financials.eps ? formatCurrency(financials.eps, { currency }) : "—" },
     {
       label: "Revenue",
       value: formatCurrency(financials.revenue, { compact: true, currency }),

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { NewsAgeLabel } from "@/components/news/news-age-label";
 import Link from "next/link";
 import { getCompanyPageData } from "@/lib/data/company-data";
+import { AddToWatchlistButton } from "@/components/company/add-to-watchlist-button";
 import { CompanyNav } from "@/components/company/company-nav";
 import { GlassHeader } from "@/components/layout/glass-header";
 import { MetricsGrid } from "@/components/company/metrics-grid";
@@ -22,7 +23,7 @@ export default async function CompanyPage({
   const data = await getCompanyPageData(ticker);
   if (!data) notFound();
 
-  const { company, financials, news, latestAnalysis, analyses, trends, changePercent } = data;
+  const { company, financials, news, latestAnalysis, analyses, trends, changePercent, inWatchlist } = data;
   const positive = changePercent >= 0;
   const currency = financials.currency;
   const isNgx = company.exchange?.toUpperCase() === "NGX" || company.country === "Nigeria";
@@ -50,12 +51,28 @@ export default async function CompanyPage({
               {formatPercent(changePercent)}
             </p>
             <Badge variant="secondary" className="mt-2">
-              {company.status}
+              {inWatchlist ? company.status : "preview"}
             </Badge>
           </div>
         }
       />
       <CompanyNav ticker={company.ticker} />
+
+      {!inWatchlist && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+          <p>
+            Preview from market ticker — add to watchlist to save AI analysis and notes.
+          </p>
+          <AddToWatchlistButton
+            name={company.name}
+            ticker={company.ticker}
+            exchange={company.exchange}
+            sector={company.sector}
+            country={company.country}
+            notes={company.notes}
+          />
+        </div>
+      )}
 
       {isNgx && (
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -76,7 +93,7 @@ export default async function CompanyPage({
           <CardTitle>Price History</CardTitle>
         </CardHeader>
         <CardContent>
-          <PriceChart data={financials.priceHistory} />
+          <PriceChart data={financials.priceHistory} currency={financials.currency} />
         </CardContent>
       </Card>
 

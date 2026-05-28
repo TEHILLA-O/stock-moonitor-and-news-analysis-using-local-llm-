@@ -50,6 +50,7 @@ export default async function FinancialsPage({
               data={rows}
               enableZoom
               initialVisibleBars={126}
+              currency={financials.currency}
             />
           ) : (
             <p className="text-sm text-slate-500">No price data available.</p>

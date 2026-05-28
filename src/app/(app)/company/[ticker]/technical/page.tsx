@@ -40,6 +40,7 @@ export default async function TechnicalPage({
         ohlcv={ohlcv}
         snapshot={snapshot}
         dataSources={financials.dataSources}
+        currency={financials.currency}
       />
     </div>
   );

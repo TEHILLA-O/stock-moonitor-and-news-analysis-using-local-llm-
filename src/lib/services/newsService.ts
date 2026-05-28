@@ -6,10 +6,12 @@
 import { generateId } from "@/lib/utils";
 import type { NewsArticle, NewsIngestionMode, NewsRegion } from "@/lib/types";
 import { fetchFreeRegionalNews } from "./freeNewsAggregator";
+import { fetchFromNewsData } from "./newsdata";
 import { scrapeFreeNewsSources } from "./freeNewsScraper";
 
 export type NewsProvider =
   | "free"
+  | "newsdata"
   | "newsapi"
   | "finnhub"
   | "fmp"
@@ -70,12 +72,23 @@ type NewsApiArticle = {
   publishedAt?: string;
 };
 
+function getNewsDataKey(): string | undefined {
+  return process.env.NEWSDATA_API_KEY?.trim() || undefined;
+}
+
+function getNewsApiKey(): string | undefined {
+  return process.env.NEWS_API_KEY?.trim() || undefined;
+}
+
 function getProvider(): NewsProvider {
   const env = process.env.NEWS_PROVIDER;
   if (env && env !== "mock") return env as NewsProvider;
-  if (process.env.NEWS_API_KEY) return "newsapi";
+  if (getNewsDataKey()) return "newsdata";
+  if (getNewsApiKey()) return "newsapi";
   return "free";
 }
+
+export { fetchFromNewsData };
 
 /** Map persisted settings / env values to a live provider (no mock). */
 export function resolveNewsProvider(configProvider?: string): NewsProvider {
@@ -307,7 +320,11 @@ export async function fetchCompanyNews(
   config?: Partial<NewsServiceConfig>
 ): Promise<NewsArticle[]> {
   const provider = resolveProvider(config?.provider);
-  const apiKey = config?.apiKey ?? process.env.NEWS_API_KEY;
+  const newsDataKey = getNewsDataKey();
+  const newsApiKey = getNewsApiKey();
+  const apiKey =
+    config?.apiKey ??
+    (provider === "newsdata" ? newsDataKey : newsApiKey);
   const region = config?.region ?? params.region ?? "usa";
   const mode = config?.mode ?? getMode();
 
@@ -319,8 +336,10 @@ export async function fetchCompanyNews(
     switch (provider) {
       case "free":
         return fetchFromFreeSources({ ...params, region });
+      case "newsdata":
+        return fetchFromNewsData({ ...params, region }, apiKey ?? newsDataKey!);
       case "newsapi":
-        return fetchFromNewsAPI({ ...params, region }, apiKey!);
+        return fetchFromNewsAPI({ ...params, region }, apiKey ?? newsApiKey!);
       case "finnhub":
         return fetchFromFinnhub(params, apiKey!);
       case "fmp":
@@ -337,6 +356,22 @@ export async function fetchCompanyNews(
   }
 
   const finnhubKey = process.env.FINNHUB_API_KEY;
+
+  async function fetchPrimaryApi(): Promise<NewsArticle[]> {
+    if (provider === "newsdata" && newsDataKey) {
+      return fetchFromNewsData({ ...params, region }, newsDataKey);
+    }
+    if (provider === "newsapi" && newsApiKey) {
+      return fetchFromNewsAPI({ ...params, region }, newsApiKey);
+    }
+    if (newsDataKey) {
+      return fetchFromNewsData({ ...params, region }, newsDataKey);
+    }
+    if (newsApiKey) {
+      return fetchFromNewsAPI({ ...params, region }, newsApiKey);
+    }
+    return [];
+  }
 
   try {
     if (provider === "finnhub" && finnhubKey) {
@@ -357,10 +392,10 @@ export async function fetchCompanyNews(
           // use free only
         }
       }
-      if (!apiKey) {
+      if (!newsDataKey && !newsApiKey) {
         return freeArticles;
       }
-      const apiArticles = await fetchFromNewsAPI({ ...params, region }, apiKey);
+      const apiArticles = await fetchPrimaryApi();
       if (apiArticles.length === 0) return freeArticles;
       const merged = [
         ...apiArticles,
@@ -369,10 +404,8 @@ export async function fetchCompanyNews(
       return merged.slice(0, params.limit ?? 12);
     }
 
-    if (apiKey) {
-      const apiArticles = await fetchFromNewsAPI({ ...params, region }, apiKey);
-      if (apiArticles.length > 0) return apiArticles;
-    }
+    const apiArticles = await fetchPrimaryApi();
+    if (apiArticles.length > 0) return apiArticles;
 
     return await scrapeFreeNewsSources({ ...params, region });
   } catch {

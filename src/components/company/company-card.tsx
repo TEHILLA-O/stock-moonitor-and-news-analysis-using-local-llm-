@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AIAnalysis, Company } from "@/lib/types";
-import { cn, decisionColor, formatCurrency } from "@/lib/utils";
+import { cn, decisionColor, formatCurrency, resolveListingCurrency } from "@/lib/utils";
 
 interface CompanyCardProps {
   company: Company;
@@ -26,6 +26,7 @@ export function CompanyCard({
   latestAnalysis,
 }: CompanyCardProps) {
   const positive = changePercent >= 0;
+  const currency = resolveListingCurrency(company.exchange, company.country);
 
   return (
     <Link href={`/company/${company.ticker}`} className="group block">
@@ -51,7 +52,7 @@ export function CompanyCard({
             {price !== undefined ? (
               <div>
                 <p className="text-xl font-semibold text-slate-100">
-                  {formatCurrency(price)}
+                  {formatCurrency(price, { currency })}
                 </p>
                 <p
                   className={cn(

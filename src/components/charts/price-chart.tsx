@@ -11,12 +11,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatChartPrice, formatCurrency } from "@/lib/utils";
 
 interface PriceChartProps {
   data: Array<{ date: string; price: number }>;
+  currency?: string;
 }
 
-export function PriceChart({ data }: PriceChartProps) {
+export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
   const chartData = useMemo(
     () =>
       data.map((d) => ({
@@ -86,7 +88,7 @@ export function PriceChart({ data }: PriceChartProps) {
           axisLine={false}
           tickLine={false}
           domain={["auto", "auto"]}
-          tickFormatter={(v) => `$${v}`}
+          tickFormatter={(v) => formatChartPrice(Number(v), currency)}
           width={52}
         />
         <Tooltip
@@ -98,7 +100,10 @@ export function PriceChart({ data }: PriceChartProps) {
             color: "#e2e8f0",
           }}
           labelFormatter={(value) => formatTooltipDate(Number(value))}
-          formatter={(value) => [`$${Number(value).toFixed(2)}`, "Price"]}
+          formatter={(value) => [
+            formatCurrency(Number(value), { currency }),
+            "Price",
+          ]}
         />
         {/* Fill only — no hover dot (prevents dot/cursor offset) */}
         <Area

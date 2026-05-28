@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import type { TechnicalRow } from "@/lib/technical/indicators";
-import { cn } from "@/lib/utils";
+import { cn, formatChartPrice, formatCurrency } from "@/lib/utils";
 
 type CandleShapeProps = {
   x?: number;
@@ -123,12 +123,14 @@ export interface CandlestickChartProps {
   enableZoom?: boolean;
   /** Bars visible when zoom is enabled (default 90 ≈ ~4 months). */
   initialVisibleBars?: number;
+  currency?: string;
 }
 
 export function CandlestickChart({
   data,
   enableZoom = false,
   initialVisibleBars = 90,
+  currency = "USD",
 }: CandlestickChartProps) {
   const chartData = useMemo(
     () =>
@@ -318,7 +320,7 @@ export function CandlestickChart({
             tick={{ fill: "#64748b", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
+            tickFormatter={(v) => formatChartPrice(Number(v), currency)}
             width={52}
           />
           <YAxis
@@ -345,11 +347,13 @@ export function CandlestickChart({
             formatter={(value, name) => {
               const n = Number(value ?? 0);
               if (name === "volume") return [n.toLocaleString(), "Volume"];
-              if (name === "price") return [n.toFixed(2), "Close"];
-              if (typeof name === "string" && name.startsWith("sma")) {
-                return [n.toFixed(2), name.toUpperCase()];
+              if (name === "price") {
+                return [formatCurrency(n, { currency }), "Close"];
               }
-              return [n.toFixed(2), String(name)];
+              if (typeof name === "string" && name.startsWith("sma")) {
+                return [formatCurrency(n, { currency }), name.toUpperCase()];
+              }
+              return [formatCurrency(n, { currency }), String(name)];
             }}
           />
           <Bar

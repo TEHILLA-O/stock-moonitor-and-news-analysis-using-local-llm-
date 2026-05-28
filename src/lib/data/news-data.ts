@@ -9,6 +9,7 @@ export async function getCompanyNews(
   company: { id: string; ticker: string; name: string },
   options?: {
     force?: boolean;
+    skipCache?: boolean;
     limit?: number;
     region?: NewsRegion;
     mode?: NewsIngestionMode;
@@ -22,5 +23,6 @@ export async function getCompanyNews(
 
   return ensureFreshCompanyNews(company, config, {
     force: options?.force,
+    skipCache: options?.skipCache,
   });
 }
