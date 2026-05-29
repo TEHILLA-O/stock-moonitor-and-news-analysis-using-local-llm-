@@ -51,7 +51,7 @@ export function MarketTickerBar() {
 
     async function load() {
       try {
-        const res = await fetch("/api/market-tape", { cache: "no-store" });
+        const res = await fetch("/api/market-tape");
         if (!res.ok) return;
         const data = (await res.json()) as MarketTapeResponse;
         if (!cancelled) setTape(data);

@@ -30,3 +30,16 @@ export async function getCompanyNews(
     return [];
   }
 }
+
+/** Read cached news from DB only — no external API (fast page loads). */
+export async function getCachedCompanyNewsOnly(
+  companyId: string,
+  limit = 4
+): Promise<NewsArticle[]> {
+  try {
+    const articles = await db.getNewsArticles(companyId);
+    return articles.slice(0, limit);
+  } catch {
+    return [];
+  }
+}

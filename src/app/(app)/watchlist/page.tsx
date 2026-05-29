@@ -1,12 +1,9 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 import { db } from "@/lib/db";
-import { defaultAppSettings } from "@/lib/db/default-settings";
 import { WatchlistClient } from "./watchlist-client";
 
 export default async function WatchlistPage() {
-  const companies = await db.getCompanies().catch(() => [] as Awaited<
-    ReturnType<typeof db.getCompanies>
-  >);
+  const companies = await db.getCompanies().catch(() => []);
   return <WatchlistClient initialCompanies={companies} />;
 }

@@ -2,62 +2,15 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
-import { db } from "@/lib/db";
-import { defaultAppSettings } from "@/lib/db/default-settings";
-import {
-  fetchCompanyFinancials,
-  resolveFinancialProvider,
-} from "@/lib/services/financialDataService";
-import { CompanyCard } from "@/components/company/company-card";
+import { getDashboardDataFast } from "@/lib/data/dashboard-data";
+import { DashboardGrid } from "@/components/company/dashboard-grid";
 import { GlassHeader } from "@/components/layout/glass-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SystemStatusBanner } from "@/components/layout/system-status-banner";
 
 export default async function DashboardPage() {
-  const companies = await db.getCompanies().catch(() => [] as Awaited<
-    ReturnType<typeof db.getCompanies>
-  >);
-  const settings = await db.getSettings().catch(() => defaultAppSettings());
-
-  const cards = await Promise.all(
-    companies.map(async (company) => {
-      const analyses = await db.getAIAnalyses(company.id).catch(() => []);
-      try {
-        const financials = await fetchCompanyFinancials(
-          {
-            ticker: company.ticker,
-            exchange: company.exchange,
-            country: company.country,
-          },
-          { provider: resolveFinancialProvider(settings.financialProvider) }
-        );
-        const changePercent =
-          financials.priceHistory.length >= 2
-            ? ((financials.currentPrice -
-                financials.priceHistory[financials.priceHistory.length - 2]
-                  .price) /
-                financials.priceHistory[financials.priceHistory.length - 2]
-                  .price) *
-              100
-            : 0;
-
-        return {
-          company,
-          price: financials.currentPrice,
-          changePercent,
-          latestAnalysis: analyses[0] ?? null,
-        };
-      } catch {
-        return {
-          company,
-          price: undefined,
-          changePercent: 0,
-          latestAnalysis: analyses[0] ?? null,
-        };
-      }
-    })
-  );
+  const { cards, settings, companies } = await getDashboardDataFast();
 
   const avgScore =
     cards.filter((c) => c.latestAnalysis).length > 0
@@ -127,30 +80,8 @@ export default async function DashboardPage() {
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
           Your Companies
         </h2>
-        {cards.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center">
-              <p className="text-slate-400">No companies yet.</p>
-              <Link href="/watchlist" className="mt-4 inline-block">
-                <Button>Add your first company</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {cards.map((c) => (
-              <CompanyCard
-                key={c.company.id}
-                company={c.company}
-                price={c.price}
-                changePercent={c.changePercent}
-                latestAnalysis={c.latestAnalysis}
-              />
-            ))}
-          </div>
-        )}
+        <DashboardGrid initialCards={cards} companies={companies} />
       </div>
-
     </div>
   );
 }

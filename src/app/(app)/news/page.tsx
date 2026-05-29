@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Newspaper, RefreshCcw } from "lucide-react";
 import { db } from "@/lib/db";
 import { defaultAppSettings } from "@/lib/db/default-settings";
-import { getCompanyNews } from "@/lib/data/news-data";
+import { getCachedCompanyNewsOnly } from "@/lib/data/news-data";
 import { getRegionalNews } from "@/lib/data/regional-news";
 import { formatFeedRefreshedAt } from "@/lib/news/age";
 import { getLatestFetchedAt } from "@/lib/news/refresh";
@@ -17,6 +17,14 @@ import { Button } from "@/components/ui/button";
 import type { NewsRegion } from "@/lib/types";
 
 const MAX_COMPANIES_ON_HUB = 12;
+const REGIONAL_NEWS_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
 
 type HubArticle = {
   id: string;
@@ -41,11 +49,7 @@ export default async function NewsHubPage() {
 
   const companyNewsResults = await Promise.allSettled(
     companies.slice(0, MAX_COMPANIES_ON_HUB).map(async (company) => {
-      const articles = await getCompanyNews(company, {
-        limit: 4,
-        region,
-        skipCache: false,
-      });
+      const articles = await getCachedCompanyNewsOnly(company.id, 4);
       return articles.map((article) => ({
         ...article,
         ticker: company.ticker,
@@ -59,7 +63,11 @@ export default async function NewsHubPage() {
     result.status === "fulfilled" ? result.value : []
   );
 
-  const regionalNews = await getRegionalNews(region, 24).catch(() => []);
+  const regionalNews = await withTimeout(
+    getRegionalNews(region, 24),
+    REGIONAL_NEWS_TIMEOUT_MS,
+    []
+  ).catch(() => []);
 
   const regionalItems: HubArticle[] = regionalNews.map((article) => ({
     ...article,
