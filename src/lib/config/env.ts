@@ -1,5 +1,7 @@
 /** Central env helpers — server only */
 
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+
 export function hasDatabaseUrl(): boolean {
   const url = process.env.DATABASE_URL ?? "";
   return url.startsWith("postgres");
@@ -21,10 +23,7 @@ export function hasNgxPulseKey(): boolean {
 }
 
 export function hasSupabaseClientEnv(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
-  );
+  return isSupabaseConfigured();
 }
 
 export function recommendedFinancialProvider(): string {

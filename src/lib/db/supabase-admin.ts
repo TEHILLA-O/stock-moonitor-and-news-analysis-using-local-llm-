@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 let admin: SupabaseClient | null = null;
 
@@ -6,8 +7,8 @@ let admin: SupabaseClient | null = null;
 export function getSupabaseAdmin(): SupabaseClient {
   if (admin) return admin;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
 
   if (!url || !key) {
     throw new Error(
