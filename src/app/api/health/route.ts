@@ -136,7 +136,7 @@ export async function GET() {
 
   const recommendations: string[] = [];
 
-  if (!hasDatabaseUrl()) {
+  if (!hasDatabaseUrl() && !checks.database?.ok) {
     recommendations.push(
       "Add Supabase DATABASE_URL for persistent storage (see docs/SUPABASE.md)."
     );

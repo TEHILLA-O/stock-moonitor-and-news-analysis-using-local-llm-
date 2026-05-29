@@ -7,7 +7,6 @@ import { DashboardGrid } from "@/components/company/dashboard-grid";
 import { GlassHeader } from "@/components/layout/glass-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SystemStatusBanner } from "@/components/layout/system-status-banner";
 
 export default async function DashboardPage() {
   const { cards, settings, companies } = await getDashboardDataFast();
@@ -37,8 +36,6 @@ export default async function DashboardPage() {
           </Link>
         }
       />
-
-      <SystemStatusBanner />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
