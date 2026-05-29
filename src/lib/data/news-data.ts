@@ -15,14 +15,18 @@ export async function getCompanyNews(
     mode?: NewsIngestionMode;
   }
 ): Promise<NewsArticle[]> {
-  const settings = await db.getSettings();
-  const config = newsConfigFromSettings(settings);
-  if (options?.limit) config.limit = options.limit;
-  if (options?.region) config.region = options.region;
-  if (options?.mode) config.mode = options.mode;
+  try {
+    const settings = await db.getSettings();
+    const config = newsConfigFromSettings(settings);
+    if (options?.limit) config.limit = options.limit;
+    if (options?.region) config.region = options.region;
+    if (options?.mode) config.mode = options.mode;
 
-  return ensureFreshCompanyNews(company, config, {
-    force: options?.force,
-    skipCache: options?.skipCache,
-  });
+    return await ensureFreshCompanyNews(company, config, {
+      force: options?.force,
+      skipCache: options?.skipCache,
+    });
+  } catch {
+    return [];
+  }
 }
